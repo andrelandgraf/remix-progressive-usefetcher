@@ -6,6 +6,10 @@ import { subscribeToNewsletter } from "~/db";
 
 type SetSearchParams =  (searchParams: URLSearchParams, { replace }: { replace: boolean } ) => void
 
+/**
+ * Cleans up search params from the URL without reloading the page
+ * It also replaces the current history entry instead of adding a new one
+ */
 function clearSearchParams(searchParams: URLSearchParams, setSearchParams: SetSearchParams) {
     const search = new URLSearchParams(searchParams);
     search.delete("success");
@@ -32,12 +36,10 @@ export default function WithJavaScriptBetterPage() {
     const fetcher = useFetcher();
     const formRef = useRef<HTMLFormElement>(null);
     const nameRef = useRef<HTMLInputElement>(null);
-    const isSubmitting = fetcher.state === "submitting";
     // The success and error messages are now shown even if JavaScript is not available.
     const [showSuccessMsg, setShowSuccessMsg] = useState(searchParams.get("success") === "true");
-    const error = searchParams.get("error");
-    const hasInternalError = error === "internal-error";
-    const hasMissingData = error === "missing-data";
+    const hasInternalError = searchParams.get("error") === "internal-error";
+    const hasMissingData = searchParams.get("error") === "missing-data";
 
     useEffect(() => {
         if(fetcher.state === 'submitting') {
@@ -119,8 +121,8 @@ export default function WithJavaScriptBetterPage() {
                         </p>
                     )
                 }
-                <button type="submit" disabled={isSubmitting}>
-                    {isSubmitting ? "Submitting..." : "Submit"}
+                <button type="submit" disabled={fetcher.state === 'submitting'}>
+                    {fetcher.state === 'submitting' ? "Submitting..." : "Submit"}
                 </button>
             </fetcher.Form>
         </main>
