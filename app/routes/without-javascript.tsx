@@ -2,36 +2,29 @@ import type { ActionArgs } from "@remix-run/node";
 import { json, redirect } from "@remix-run/node";
 import { useLoaderData } from "@remix-run/react";
 import { subscribeToNewsletter } from "~/db";
-import type { FormState, SessionData } from "~/session.server";
-import { getSessionData, setSessionData } from "~/session.server";
-
-function buildSessionData(formState: FormState): SessionData {
-    return { formState };
-}
+import { getSessionFormState, flashFormState } from "~/session.server";
 
 export async function action({ request }: ActionArgs) {
     const formData = await request.formData();
     const name = formData.get("name");
     const email = formData.get("email");
     if(!name || !email || typeof name !== "string" || typeof email !== "string") {
-        const data = buildSessionData({ success: false, error: 'Some data is missing. Please fill out all fields.' });
-        const headers = await setSessionData(request, data);
+        const formState = { success: false, error: 'Some data is missing. Please fill out all fields.' };
+        const headers = await flashFormState(request, formState);
         return redirect('/without-javascript', { headers });
     }
     const succ = await subscribeToNewsletter(name, email);
     if(!succ) {
-        const data = buildSessionData({ success: false, error: 'Something went wrong. There was an error saving your data. Please try again.' });
-        const headers = await setSessionData(request, data);
+        const formState = { success: false, error: 'Something went wrong. There was an error saving your data. Please try again.' };
+        const headers = await flashFormState(request, formState);
         return redirect('/without-javascript', { headers });
     }
-    const data = buildSessionData({ success: true, error: '' });
-    const headers = await setSessionData(request, data);
+    const headers = await flashFormState(request, { success: true, error: '' });
     return redirect('/without-javascript', { headers });
 }
 
 export async function loader({ request }: ActionArgs) {
-    const { formState } = await getSessionData(request);
-    const headers = await setSessionData(request, buildSessionData({ success: false, error: '' }));
+    const [formState, headers] = await getSessionFormState(request);
     return json({ formState }, { headers });
 }
 

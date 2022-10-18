@@ -9,28 +9,24 @@ const { getSession, commitSession } =
     },
   });
 
-export type FormState = {
+type FormState = {
     success: boolean;
     error: string;
 }
 
-export type SessionData = {
-    formState: FormState;
-}
-
-export async function getSessionData(request: Request): Promise<SessionData> {
+export async function getSessionFormState(request: Request, headers = new Headers()): Promise<[FormState, Headers]> {
     const session = await getSession(request.headers.get("Cookie"));
-    const data = session.get('data');
+    const data = session.get('formState');
+    headers.append('Set-Cookie', await commitSession(session));
     if(!data) {
-        return { formState: { success: false, error: '' } };
+        return [{ success: false, error: '' }, headers];
     }
-    const parsed = JSON.parse(data);
-    return parsed.formState ? parsed : { formState: { success: false, error: '' } };
+    return [JSON.parse(data), headers];
 }
 
-export async function setSessionData(request: Request, data: SessionData, headers = new Headers()): Promise<Headers> {
+export async function flashFormState(request: Request, data: FormState, headers = new Headers()): Promise<Headers> {
     const session = await getSession(request.headers.get("Cookie"));
-    session.set('data', JSON.stringify(data));
+    session.flash('formState', JSON.stringify(data));
     headers.append('Set-Cookie', await commitSession(session));
     return headers;
 }

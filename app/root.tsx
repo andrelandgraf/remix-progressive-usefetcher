@@ -26,6 +26,7 @@ export default function App() {
       <head>
         <Meta />
         <Links />
+        <Scripts />
       </head>
       <body>
         <Outlet />
