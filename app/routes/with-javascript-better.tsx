@@ -1,77 +1,86 @@
-import type { ActionArgs  } from "@remix-run/node";
-import { redirect } from "@remix-run/node";
-import { useFetcher, useSearchParams } from "@remix-run/react";
+import type { ActionArgs } from "@remix-run/node";
+import { json, redirect } from "@remix-run/node";
+import { useLoaderData, useFetcher } from "@remix-run/react";
 import { useEffect, useRef, useState } from "react";
 import { subscribeToNewsletter } from "~/db";
+import type { FormState, SessionData } from "~/session.server";
+import { getSessionData, setSessionData } from "~/session.server";
 
-type SetSearchParams =  (searchParams: URLSearchParams, { replace }: { replace: boolean } ) => void
-
-/**
- * Cleans up search params from the URL without reloading the page
- * It also replaces the current history entry instead of adding a new one
- */
-function clearSearchParams(searchParams: URLSearchParams, setSearchParams: SetSearchParams) {
-    const search = new URLSearchParams(searchParams);
-    search.delete("success");
-    search.delete("error");
-    setSearchParams(search, { replace: true });
-} 
+function buildSessionData(formState: FormState): SessionData {
+    return { formState };
+}
 
 export async function action({ request }: ActionArgs) {
     const formData = await request.formData();
     const name = formData.get("name");
     const email = formData.get("email");
     if(!name || !email || typeof name !== "string" || typeof email !== "string") {
-        return redirect("/with-javascript-better?error=missing-data");
+        const data = buildSessionData({ success: false, error: 'Some data is missing. Please fill out all fields.' });
+        const headers = await setSessionData(request, data);
+        return redirect('/with-javascript-better', { headers });
     }
     const succ = await subscribeToNewsletter(name, email);
     if(!succ) {
-        return redirect("/with-javascript-better?error=internal-error");
+        const data = buildSessionData({ success: false, error: 'Something went wrong. There was an error saving your data. Please try again.' });
+        const headers = await setSessionData(request, data);
+        return redirect('/with-javascript-better', { headers });
     }
-    return redirect("/with-javascript-better?success=true");
+    const data = buildSessionData({ success: true, error: '' });
+    const headers = await setSessionData(request, data);
+    return redirect('/with-javascript-better', { headers });
 }
 
+export async function loader({ request }: ActionArgs) {
+    const { formState } = await getSessionData(request);
+    const headers = await setSessionData(request, buildSessionData({ success: false, error: '' }));
+    return json({ formState }, { headers });
+}
+
+
 export default function WithJavaScriptBetterPage() {
-    const [searchParams, setSearchParams] = useSearchParams();
+    const data = useLoaderData<typeof loader>();
     const fetcher = useFetcher();
     const formRef = useRef<HTMLFormElement>(null);
     const nameRef = useRef<HTMLInputElement>(null);
     // The success and error messages are now shown even if JavaScript is not available.
-    const [showSuccessMsg, setShowSuccessMsg] = useState(searchParams.get("success") === "true");
-    const hasInternalError = searchParams.get("error") === "internal-error";
-    const hasMissingData = searchParams.get("error") === "missing-data";
+    const [error, setError] = useState(data.formState.error);
+    const [showSuccessMsg, setShowSuccessMsg] = useState(data.formState.success);
 
     useEffect(() => {
         if(fetcher.state === 'submitting') {
             // JavaScript to clean messages when submitting
             setShowSuccessMsg(false);
-            clearSearchParams(searchParams, setSearchParams);
+            setError('');
         }
-    }, [fetcher.state, searchParams, setSearchParams]);
+    }, [fetcher.state]);
 
     useEffect(() => {
         let timeout: number;
-        if(searchParams.get("success") === "true") {
+        if(data.formState.success) {
             // JavaScript to reset form and focus
             formRef.current?.reset();
             nameRef.current?.focus();
             setShowSuccessMsg(true);
+            setError('');
             timeout = window.setTimeout(() => {
                 // JavaScript to hide success message after timeout
                 setShowSuccessMsg(false);
-                clearSearchParams(searchParams, setSearchParams);
             }, 5000);
+        } else if(data.formState.error) {
+            setShowSuccessMsg(false);
+            setError(data.formState.error);
         }
         return () => {
             if(timeout) window.clearTimeout(timeout);
         };
-    }, [searchParams, setSearchParams])
+    }, [data]);
 
     return (
         <main>
             <h1>Step 2: With JavaScript (Better)</h1>
             <p>
-                This version of the form uses `useFetcher` and action redirects to create an enhanced user experience.
+                This version of the form uses `useFetcher`, cookies, and action redirects to create an enhanced user experience.
+                We went back to the first version and enhanced it with JavaScript.
                 We use `useFetcher.From` but for simple cases without multiple concurrent submissions, `Form` works as well.
             </p>
             <p>
@@ -101,16 +110,9 @@ export default function WithJavaScriptBetterPage() {
                         />
                 </div>
                 {
-                    hasInternalError && (
+                    error && (
                         <p style={{ color: "red" }}>
-                            There was an error saving your data. Please try again.
-                        </p>
-                    )
-                }
-                {
-                    hasMissingData && (
-                        <p style={{ color: "red" }}>
-                            Please fill out all fields.
+                            {error}
                         </p>
                     )
                 }

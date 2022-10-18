@@ -9,11 +9,11 @@ export async function action({ request }: ActionArgs) {
     const name = formData.get("name");
     const email = formData.get("email");
     if(!name || !email || typeof name !== "string" || typeof email !== "string") {
-        return json({ error: "missing-data" });
+        return json({ error: "Some data is missing. Please fill out all fields." });
     }
     const succ = await subscribeToNewsletter(name, email);
     if(!succ) {
-        return json({ error: "internal-error" });
+        return json({ error: "Something went wrong. There was an error saving your data. Please try again." });
     }
     return json({ success: true });
 }
@@ -24,8 +24,6 @@ export default function WithJavaScriptPage() {
     const isSubmitting = fetcher.state === "submitting";
     const succeeded = fetcher.data?.success;
     const error = fetcher.data?.error;
-    const hasInternalError = error === "internal-error";
-    const hasMissingData = error === "missing-data";
     const [showSuccessMsg, setShowSuccessMsg] = useState(succeeded);
 
     useEffect(() => {
@@ -53,11 +51,11 @@ export default function WithJavaScriptPage() {
             <p>
                 But how does the experience look like if we remove the client-side JavaScript?
                 The form will again perform a full page reload when the form is submitted.
+                Great, Remix provides progressive enhancement for us!
                 However, the error and success messages are not shown anymore.
                 That is because `useFetcher.data` is only ever populated on the client-side.
                 The server will always render a clean/reset action data state.
-                The experience is worth than in our without JavaScript example if Scripts are removed
-                or JavaScript not loaded otherwise.
+                For non-JavaScript, the experience is now worse than before.
             </p>
             <fetcher.Form ref={formRef} method="post" action="/with-javascript">
                 <h2>Subscribe to newsletter</h2>
@@ -82,16 +80,9 @@ export default function WithJavaScriptPage() {
                         />
                 </div>
                 {
-                    hasInternalError && (
+                    error && (
                         <p style={{ color: "red" }}>
-                            There was an error saving your data. Please try again.
-                        </p>
-                    )
-                }
-                {
-                    hasMissingData && (
-                        <p style={{ color: "red" }}>
-                            Please fill out all fields.
+                            {error}
                         </p>
                     )
                 }
