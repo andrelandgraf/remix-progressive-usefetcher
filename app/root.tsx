@@ -14,17 +14,23 @@ export const meta: MetaFunction = () => ({
   viewport: "width=device-width,initial-scale=1",
 });
 
+/*
+ * Scripts are removed to showcase the experience without JavaScript.
+ * <Scripts />
+ */
+
+
 export default function App() {
   return (
     <html lang="en">
       <head>
         <Meta />
         <Links />
+        <Scripts />
       </head>
       <body>
         <Outlet />
         <ScrollRestoration />
-        <Scripts />
         <LiveReload />
       </body>
     </html>

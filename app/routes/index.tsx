@@ -1,32 +1,26 @@
+import { NavLink } from "@remix-run/react";
+
 export default function Index() {
   return (
-    <div style={{ fontFamily: "system-ui, sans-serif", lineHeight: "1.4" }}>
-      <h1>Welcome to Remix</h1>
+    <main style={{ fontFamily: "system-ui, sans-serif", lineHeight: "1.4" }}>
+      <h1>Welcome</h1>
       <ul>
         <li>
-          <a
-            target="_blank"
-            href="https://remix.run/tutorials/blog"
-            rel="noreferrer"
-          >
-            15m Quickstart Blog Tutorial
-          </a>
+          <NavLink to="without-javascript">
+            Step 1: Without JavaScript
+          </NavLink>
         </li>
         <li>
-          <a
-            target="_blank"
-            href="https://remix.run/tutorials/jokes"
-            rel="noreferrer"
-          >
-            Deep Dive Jokes App Tutorial
-          </a>
+        <NavLink to="with-javascript">
+            Step 2: Enhanced with JavaScript
+          </NavLink>
         </li>
         <li>
-          <a target="_blank" href="https://remix.run/docs" rel="noreferrer">
-            Remix Docs
-          </a>
+        <NavLink to="with-javascript-better">
+            Step 2: Enhanced with JavaScript (better)
+          </NavLink>
         </li>
       </ul>
-    </div>
+    </main>
   );
 }
